@@ -190,7 +190,7 @@ def create_sidebar_status(model, scaler, features):
     st.sidebar.markdown("""
     - **Algorithm**: Ensemble Classifier (mix n match)
     - **Training**: Heart Disease Dataset
-    - **Accuracy**: Optimized to 92.40%
+    - **Accuracy**: 92.40%
     """)
 
 def create_input_form():
