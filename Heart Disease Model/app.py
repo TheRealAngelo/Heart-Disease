@@ -142,6 +142,10 @@ document.addEventListener('DOMContentLoaded', function() {
 def load_model_components():
     """Load the trained model, scaler, and feature names"""
     try:
+        # Try to create model files if they don't exist (for Streamlit Cloud)
+        from setup_model import create_model_if_not_exists
+        create_model_if_not_exists()
+        
         model = joblib.load('model/heart_disease_model.pkl')
         scaler = joblib.load('model/scaler.pkl')
         features = joblib.load('model/features.pkl')
@@ -149,6 +153,9 @@ def load_model_components():
     except FileNotFoundError as e:
         st.error(f"Model files not found: {e}")
         st.error("Please make sure you have run the training notebook and saved the model files.")
+        return None, None, None
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
         return None, None, None
 
 def create_sidebar_status(model, scaler, features):
