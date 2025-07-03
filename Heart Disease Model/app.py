@@ -31,20 +31,6 @@ except FileNotFoundError:
     </style>
     """, unsafe_allow_html=True)
 
-# Simple JavaScript for basic functionality (Streamlit Cloud compatible)
-st.markdown("""
-<script>
-setTimeout(function() {
-    // Simple readonly setup for select inputs
-    const selectInputs = document.querySelectorAll('.stSelectbox input');
-    selectInputs.forEach(input => {
-        input.setAttribute('readonly', 'readonly');
-        input.style.cursor = 'pointer';
-    });
-}, 1000);
-</script>
-""", unsafe_allow_html=True)
-
 @st.cache_resource
 def load_model_components():
     """Load the trained model, scaler, and feature names"""
