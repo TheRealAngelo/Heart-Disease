@@ -3,9 +3,27 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import sys
 from sklearn.preprocessing import StandardScaler
 import plotly.express as px
 import plotly.graph_objects as go
+
+# Version compatibility checks
+try:
+    # Check minimum versions
+    import sklearn
+    sklearn_version = sklearn.__version__
+    pandas_version = pd.__version__
+    numpy_version = np.__version__
+    
+    st.sidebar.markdown("### Environment Info")
+    st.sidebar.markdown(f"Python: {sys.version_info.major}.{sys.version_info.minor}")
+    st.sidebar.markdown(f"NumPy: {numpy_version}")
+    st.sidebar.markdown(f"Pandas: {pandas_version}")
+    st.sidebar.markdown(f"Scikit-learn: {sklearn_version}")
+    
+except Exception as e:
+    st.error(f"Environment compatibility issue: {e}")
 
 # Page configuration
 st.set_page_config(
@@ -52,7 +70,7 @@ def create_basic_model():
     import numpy as np
     
     # Create directory
-    os.makedirs('model', exist_ok=True)
+    os.makedirs('models', exist_ok=True)
     
     # Define features that match our form inputs
     features = ['BMI', 'Smoking', 'AlcoholDrinking', 'Stroke', 'PhysicalHealth', 
@@ -93,10 +111,10 @@ def create_basic_model():
     scaler = StandardScaler()
     scaler.fit(X_dummy)
     
-    # Save all components
-    joblib.dump(model, 'model/heart_disease_model.pkl')
-    joblib.dump(scaler, 'model/scaler.pkl')
-    joblib.dump(features, 'model/features.pkl')
+    # Save all components to models directory
+    joblib.dump(model, 'models/heart_disease_model.joblib')
+    joblib.dump(scaler, 'models/scaler.joblib')
+    joblib.dump(features, 'models/features.joblib')
     
     return model, scaler, features
 
@@ -104,33 +122,36 @@ def create_basic_model():
 def load_model_components():
     """Load the trained model, scaler, and feature names"""
     try:
-        # First try to load existing model files
-        if (os.path.exists('model/heart_disease_model.pkl') and 
-            os.path.exists('model/scaler.pkl') and 
-            os.path.exists('model/features.pkl')):
+        # First try to load existing model files (check both .joblib and .pkl)
+        if (os.path.exists('models/heart_disease_model.joblib') and 
+            os.path.exists('models/scaler.joblib') and 
+            os.path.exists('models/features.joblib')):
+            
+            model = joblib.load('models/heart_disease_model.joblib')
+            scaler = joblib.load('models/scaler.joblib')
+            features = joblib.load('models/features.joblib')
+            return model, scaler, features
+        
+        # Fallback to .pkl files in 'model' directory
+        elif (os.path.exists('model/heart_disease_model.pkl') and 
+              os.path.exists('model/scaler.pkl') and 
+              os.path.exists('model/features.pkl')):
             
             model = joblib.load('model/heart_disease_model.pkl')
             scaler = joblib.load('model/scaler.pkl')
             features = joblib.load('model/features.pkl')
             return model, scaler, features
         
-        # If files don't exist, try to create them using setup_model
-        try:
-            import setup_model
-            setup_model.create_model_if_not_exists()
-            model = joblib.load('model/heart_disease_model.pkl')
-            scaler = joblib.load('model/scaler.pkl')
-            features = joblib.load('model/features.pkl')
-            return model, scaler, features
-        except (ImportError, FileNotFoundError):
-            # Fallback: create basic model
-            st.info("Creating demo model for deployment...")
+        # If no files exist, create basic model
+        else:
+            st.info("Model files not found. Creating demo model...")
             return create_basic_model()
             
     except Exception as e:
         st.error(f"Error loading model: {e}")
         # Last resort: create basic model
         try:
+            st.info("Creating fallback model...")
             return create_basic_model()
         except Exception as e2:
             st.error(f"Failed to create fallback model: {e2}")
@@ -314,13 +335,13 @@ def create_prediction_visualization(prediction_proba):
     return fig
 
 def main():
+
+    
     # Header
     st.markdown('<h1 class="main-header">Heart Disease Risk Predictor</h1>', unsafe_allow_html=True)
     
     # Load model components
     model, scaler, features = load_model_components()
-    
-    # Create sidebar status
     create_sidebar_status(model, scaler, features)
     
     if model is None:
