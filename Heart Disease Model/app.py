@@ -31,40 +31,19 @@ except FileNotFoundError:
     </style>
     """, unsafe_allow_html=True)
 
-@st.cache_resource
-def load_model_components():
-    """Load the trained model, scaler, and feature names"""
-    try:
-        # Try to create model files if they don't exist (for Streamlit Cloud)
-        try:
-            import setup_model
-            setup_model.create_model_if_not_exists()
-        except ImportError:
-            # If setup_model isn't available, try to create basic model files
-            if not os.path.exists('model'):
-                os.makedirs('model', exist_ok=True)
-            if not os.path.exists('model/heart_disease_model.pkl'):
-                create_basic_model()
-        
-        model = joblib.load('model/heart_disease_model.pkl')
-        scaler = joblib.load('model/scaler.pkl')
-        features = joblib.load('model/features.pkl')
-        return model, scaler, features
-    except FileNotFoundError as e:
-        st.error(f"Model files not found: {e}")
-        st.error("Creating model files automatically...")
-        create_basic_model()
-        try:
-            model = joblib.load('model/heart_disease_model.pkl')
-            scaler = joblib.load('model/scaler.pkl')
-            features = joblib.load('model/features.pkl')
-            return model, scaler, features
-        except:
-            st.error("Failed to create model files. Please check the deployment configuration.")
-            return None, None, None
-    except Exception as e:
-        st.error(f"Error loading model: {e}")
-        return None, None, None
+# Simple JavaScript for basic functionality (Streamlit Cloud compatible)
+st.markdown("""
+<script>
+setTimeout(function() {
+    // Simple readonly setup for select inputs
+    const selectInputs = document.querySelectorAll('.stSelectbox input');
+    selectInputs.forEach(input => {
+        input.setAttribute('readonly', 'readonly');
+        input.style.cursor = 'pointer';
+    });
+}, 1000);
+</script>
+""", unsafe_allow_html=True)
 
 def create_basic_model():
     """Create a basic model for deployment if setup_model is not available"""
@@ -75,13 +54,37 @@ def create_basic_model():
     # Create directory
     os.makedirs('model', exist_ok=True)
     
-    # Define features
-    features = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 
-                'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal']
+    # Define features that match our form inputs
+    features = ['BMI', 'Smoking', 'AlcoholDrinking', 'Stroke', 'PhysicalHealth', 
+                'MentalHealth', 'DiffWalking', 'Sex', 'Diabetic', 'PhysicalActivity',
+                'GenHealth_Fair', 'GenHealth_Good', 'GenHealth_Poor', 'GenHealth_Very good',
+                'SleepTime', 'Asthma', 'KidneyDisease', 'SkinCancer']
     
-    # Create a simple trained model (this is just for demo purposes)
-    X_dummy = np.random.rand(100, len(features))
-    y_dummy = np.random.randint(0, 2, 100)
+    # Create a more realistic trained model for heart disease prediction
+    np.random.seed(42)
+    X_dummy = np.random.rand(1000, len(features))
+    
+    # Create more realistic labels based on risk factors
+    y_dummy = []
+    for i in range(1000):
+        risk_score = 0
+        # Higher risk for smoking, diabetes, stroke, etc.
+        if X_dummy[i][1] > 0.7:  # Smoking
+            risk_score += 0.3
+        if X_dummy[i][8] > 0.8:  # Diabetes  
+            risk_score += 0.25
+        if X_dummy[i][3] > 0.8:  # Stroke
+            risk_score += 0.35
+        if X_dummy[i][0] > 0.8:  # High BMI
+            risk_score += 0.2
+        if X_dummy[i][4] > 0.7:  # Poor physical health
+            risk_score += 0.15
+        
+        # Add some randomness
+        risk_score += np.random.normal(0, 0.1)
+        y_dummy.append(1 if risk_score > 0.5 else 0)
+    
+    y_dummy = np.array(y_dummy)
     
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_dummy, y_dummy)
@@ -94,6 +97,44 @@ def create_basic_model():
     joblib.dump(model, 'model/heart_disease_model.pkl')
     joblib.dump(scaler, 'model/scaler.pkl')
     joblib.dump(features, 'model/features.pkl')
+    
+    return model, scaler, features
+
+@st.cache_resource
+def load_model_components():
+    """Load the trained model, scaler, and feature names"""
+    try:
+        # First try to load existing model files
+        if (os.path.exists('model/heart_disease_model.pkl') and 
+            os.path.exists('model/scaler.pkl') and 
+            os.path.exists('model/features.pkl')):
+            
+            model = joblib.load('model/heart_disease_model.pkl')
+            scaler = joblib.load('model/scaler.pkl')
+            features = joblib.load('model/features.pkl')
+            return model, scaler, features
+        
+        # If files don't exist, try to create them using setup_model
+        try:
+            import setup_model
+            setup_model.create_model_if_not_exists()
+            model = joblib.load('model/heart_disease_model.pkl')
+            scaler = joblib.load('model/scaler.pkl')
+            features = joblib.load('model/features.pkl')
+            return model, scaler, features
+        except (ImportError, FileNotFoundError):
+            # Fallback: create basic model
+            st.info("Creating demo model for deployment...")
+            return create_basic_model()
+            
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        # Last resort: create basic model
+        try:
+            return create_basic_model()
+        except Exception as e2:
+            st.error(f"Failed to create fallback model: {e2}")
+            return None, None, None
 
 def create_sidebar_status(model, scaler, features):
     """Create sidebar with model status information"""
