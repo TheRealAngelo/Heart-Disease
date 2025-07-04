@@ -188,7 +188,7 @@ def create_sidebar_status(model, scaler, features):
     st.sidebar.markdown("---")
     st.sidebar.markdown("### Model Information")
     st.sidebar.markdown("""
-    - **Algorithm**: Ensemble Classifier (mix n match)
+    - **Algorithm**: Random Forest Classifier
     - **Training**: Heart Disease Dataset
     - **Accuracy**: 92.40%
     """)
